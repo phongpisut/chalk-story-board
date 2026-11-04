@@ -577,13 +577,14 @@ board.addEventListener('pointermove', e => {
 board.addEventListener('pointerleave', () => { brush.hidden = true; mouse = null; });
 $('#undo').onclick = undo;
 $('#clearInk').onclick = () => { snapshot(); ictx.clearRect(0, 0, cssW, cssH); save(); };
-$('#clearAll').onclick = () => {
-  if (!confirm('Clear this page (stickers, text and chalk)?')) return;
+$('#clearAll').onclick = async () => {
+  if (!await ask('Clear this page? Its stickers, text and chalk will be deleted.', 'Clear page')) return;
   [...itemsEl.children].forEach(el => removeItem(el._it));
   snapshot(); ictx.clearRect(0, 0, cssW, cssH); save();
 };
 
 addEventListener('keydown', e => {
+  if ($('#ask').open) return; // board hotkeys pause while the confirm dialog is up
   // only real text entry swallows hotkeys; a focused dropdown, slider or button does not
   if (e.target.closest('textarea, [contenteditable="true"], input:not([type="range"])')) {
     if (e.key === 'Escape') e.target.blur();
@@ -663,9 +664,19 @@ function addPage() {
   showPage(cur + 1, 1);
 }
 
-function removePage() {
+// In-page replacement for confirm(): embedded browsers (like the Claude pane) block native dialogs and answer "Cancel".
+function ask(message, okLabel) {
+  const d = $('#ask');
+  $('#askMsg').textContent = message;
+  $('#askOk').textContent = okLabel;
+  d.returnValue = '';
+  d.showModal();
+  return new Promise(res => d.addEventListener('close', () => res(d.returnValue === 'yes'), { once: true }));
+}
+
+async function removePage() {
   if (pages.length < 2) return;
-  if (!confirm(`Remove page ${cur + 1}? Its stickers, text and chalk will be deleted.`)) return;
+  if (!await ask(`Remove page ${cur + 1}? Its stickers, text and chalk will be deleted.`, 'Remove page')) return;
   pages.splice(cur, 1);
   showPage(Math.min(cur, pages.length - 1), 0);
 }
