@@ -590,16 +590,17 @@ addEventListener('keydown', e => {
     if (e.key === 'Escape') e.target.blur();
     return;
   }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); return undo(); }
+  if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); return undo(); }
   if ((e.ctrlKey || e.metaKey) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
     e.preventDefault(); e.target.blur?.();
     return goPage(cur + (e.key === 'ArrowLeft' ? -1 : 1));
   }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && sel) { e.preventDefault(); clip = itemData(sel); lastPaste = null; return; }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && clip) { e.preventDefault(); return paste(); }
+  if ((e.ctrlKey || e.metaKey) && e.code === 'KeyC' && sel) { e.preventDefault(); clip = itemData(sel); lastPaste = null; return; }
+  if ((e.ctrlKey || e.metaKey) && e.code === 'KeyV' && clip) { e.preventDefault(); return paste(); }
   if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); return removeItem(sel); }
   if (e.key === 'Escape') { e.target.blur?.(); return select(null); }
-  const t = { v: 'select', b: 'chalk', c: 'circle', a: 'arrow', t: 'text', e: 'eraser' }[e.key.toLowerCase()];
+  // e.code is the physical key, so hotkeys work with any keyboard language (Thai, Japanese, …)
+  const t = { KeyV: 'select', KeyB: 'chalk', KeyC: 'circle', KeyA: 'arrow', KeyT: 'text', KeyE: 'eraser' }[e.code];
   if (t && !e.ctrlKey && !e.metaKey && !e.altKey) {
     e.preventDefault(); // stops a focused <select> from jumping to the option starting with that letter
     e.target.blur?.();
