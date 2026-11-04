@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalk Story Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Mali:wght@400;600&family=Yomogi&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-move" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M12 2l-3 3M12 2l3 3M12 22l-3-3M12 22l3-3M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3"/></symbol>
+    <symbol id="i-chalk" viewBox="0 0 24 24"><path d="M4 20l3-1 11-11-2-2L5 17l-1 3zM14 6l2-2 4 4-2 2"/></symbol>
+    <symbol id="i-circle" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7.5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 19L19 5M19 5h-8M19 5v8"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></symbol>
+    <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M3 17l9-9 6 6-5 5H7zM14 6l2-2 6 6-2 2M7 19h13"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></symbol>
+    <symbol id="i-wipe" viewBox="0 0 24 24"><path d="M3 21h18M6 17l3-11h6l3 11zM9 6V3h6v3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></symbol>
+  </defs>
+</svg>
+
+<header class="toolbar" role="toolbar" aria-label="Board tools">
+  <div class="brand"><span class="logo">🖍️</span><span>Chalk Story</span></div>
+  <div class="seg" id="tools">
+    <button data-tool="select" class="on" title="Move / select (V)"><svg><use href="#i-move"/></svg><span>Move</span></button>
+    <button data-tool="chalk" title="Chalk brush (B)"><svg><use href="#i-chalk"/></svg><span>Chalk</span></button>
+    <button data-tool="circle" title="Circle (C)"><svg><use href="#i-circle"/></svg><span>Circle</span></button>
+    <button data-tool="arrow" title="Arrow (A)"><svg><use href="#i-arrow"/></svg><span>Arrow</span></button>
+    <button data-tool="text" title="Text — click the board (T)"><svg><use href="#i-text"/></svg><span>Text</span></button>
+    <button data-tool="eraser" title="Eraser (E)"><svg><use href="#i-eraser"/></svg><span>Erase</span></button>
+  </div>
+  <div class="seg colors" id="colors" aria-label="Chalk color"></div>
+  <label class="seg size" title="Brush size — Ctrl + scroll on the board">
+    <span class="dot" id="sizeDot"></span>
+    <input id="size" type="range" min="2" max="40" value="6" aria-label="Brush size">
+    <output id="sizeVal">6</output>
+  </label>
+  <div class="seg actions">
+    <button id="undo" title="Undo chalk (Ctrl+Z)"><svg><use href="#i-undo"/></svg><span>Undo</span></button>
+    <button id="clearInk" title="Wipe all chalk"><svg><use href="#i-wipe"/></svg><span>Wipe chalk</span></button>
+    <button id="clearAll" class="danger" title="Clear the whole board"><svg><use href="#i-trash"/></svg><span>Clear</span></button>
+  </div>
+</header>
+
+<main>
+  <aside class="library" aria-label="Sticker library">
+    <div class="search"><svg><use href="#i-search"/></svg><input id="search" type="search" placeholder="Search: cat, king, angry, 猫 …" autocomplete="off"></div>
+    <div id="cats" class="cats"></div>
+    <div id="count" class="count">Loading stickers…</div>
+    <div id="grid" class="grid"></div>
+  </aside>
+
+  <div class="stage">
+    <section id="board" class="board" aria-label="Blackboard">
+      <div id="items" class="items"></div>
+      <canvas id="ink"></canvas>
+      <canvas id="preview"></canvas>
+      <div id="brush" class="brush" hidden></div>
+    </section>
+    <div class="tray" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+  </div>
+</main>
+
+<div id="panel" class="panel" hidden>
+  <input id="pName" placeholder="Name tag (e.g. Taro)" maxlength="40">
+  <select id="pAnim" title="Animation">
+    <option value="">No animation</option>
+  </select>
+  <select id="pMode" title="When to play">
+    <option value="loop">Loop</option>
+    <option value="click">Play on click</option>
+  </select>
+  <button id="pPlay" title="Play now">▶</button>
+  <button id="pFlip" title="Flip">⇋</button>
+  <button id="pFront" title="Bring to front">⬆</button>
+  <button id="pDup" title="Duplicate">⧉</button>
+  <button id="pDel" class="danger" title="Delete (Del)">✕</button>
+</div>
+
+<footer>
+  Made with ♥ by <b>Claude</b> &amp; <b>P.Meemuk</b> ·
+  Illustrations by <a href="https://www.irasutoya.com/" target="_blank" rel="noopener">いらすとや (Irasutoya)</a>, used under their free-use terms
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
