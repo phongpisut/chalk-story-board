@@ -220,11 +220,25 @@ pMode.onchange = () => { sel.mode = pMode.value; startAnim(sel); save(); };
 $('#pPlay').onclick = () => trigger(sel);
 $('#pFlip').onclick = () => { sel.flip = !sel.flip; render(sel); save(); };
 $('#pFront').onclick = () => { itemsEl.append(sel.el); save(); };
-$('#pDup').onclick = () => {
-  const { el, body, ...d } = sel;
-  for (const k of Object.keys(d)) if (k[0] === '_') delete d[k];
-  select(makeItem({ ...d, x: d.x + 30, y: d.y + 30 })); save();
-};
+const itemData = it => Object.fromEntries(FIELDS.map(k => [k, it[k]]));
+$('#pDup').onclick = () => { select(makeItem({ ...itemData(sel), x: sel.x + 30, y: sel.y + 30 })); save(); };
+
+// Ctrl+C / Ctrl+V: paste under the mouse when it is over the board, otherwise cascade from the last copy
+let clip = null, mouse = null, lastPaste = null, nudge = 0;
+function paste() {
+  let x, y;
+  if (mouse) {
+    nudge = lastPaste?.x === mouse.x && lastPaste?.y === mouse.y ? nudge + 20 : 0; // repeated paste on one spot fans out
+    lastPaste = mouse;
+    const half = clip.type === 'img' ? clip.w / 2 : 20;
+    x = mouse.x - half + nudge; y = mouse.y - half + nudge;
+  } else {
+    clip.x += 30; clip.y += 30;
+    ({ x, y } = clip);
+  }
+  select(makeItem({ ...clip, x, y }));
+  save();
+}
 $('#pDel').onclick = () => removeItem(sel);
 addEventListener('resize', placePanel);
 
@@ -555,12 +569,12 @@ board.addEventListener('wheel', e => {
   setSize(size + Math.sign(-e.deltaY) * (size >= 12 ? 2 : 1));
 }, { passive: false });
 board.addEventListener('pointermove', e => {
-  brush.hidden = !board.classList.contains('drawing');
-  if (brush.hidden) return;
   const r = ink.getBoundingClientRect();
-  brush.style.transform = `translate(${e.clientX - r.left}px,${e.clientY - r.top}px)`;
+  mouse = { x: e.clientX - r.left, y: e.clientY - r.top };
+  brush.hidden = !board.classList.contains('drawing');
+  if (!brush.hidden) brush.style.transform = `translate(${mouse.x}px,${mouse.y}px)`;
 });
-board.addEventListener('pointerleave', () => brush.hidden = true);
+board.addEventListener('pointerleave', () => { brush.hidden = true; mouse = null; });
 $('#undo').onclick = undo;
 $('#clearInk').onclick = () => { snapshot(); ictx.clearRect(0, 0, cssW, cssH); save(); };
 $('#clearAll').onclick = () => {
@@ -576,6 +590,8 @@ addEventListener('keydown', e => {
     return;
   }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); return undo(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && sel) { e.preventDefault(); clip = itemData(sel); lastPaste = null; return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && clip) { e.preventDefault(); return paste(); }
   if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); return removeItem(sel); }
   if (e.key === 'Escape') { e.target.blur?.(); return select(null); }
   const t = { v: 'select', b: 'chalk', c: 'circle', a: 'arrow', t: 'text', e: 'eraser' }[e.key.toLowerCase()];
