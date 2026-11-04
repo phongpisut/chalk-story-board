@@ -570,15 +570,20 @@ $('#clearAll').onclick = () => {
 };
 
 addEventListener('keydown', e => {
-  if (e.target.closest('input, select, [contenteditable="true"]')) {
+  // only real text entry swallows hotkeys; a focused dropdown, slider or button does not
+  if (e.target.closest('textarea, [contenteditable="true"], input:not([type="range"])')) {
     if (e.key === 'Escape') e.target.blur();
     return;
   }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); return undo(); }
-  if ((e.key === 'Delete' || e.key === 'Backspace') && sel) return removeItem(sel);
-  if (e.key === 'Escape') return select(null);
+  if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); return removeItem(sel); }
+  if (e.key === 'Escape') { e.target.blur?.(); return select(null); }
   const t = { v: 'select', b: 'chalk', c: 'circle', a: 'arrow', t: 'text', e: 'eraser' }[e.key.toLowerCase()];
-  if (t && !e.ctrlKey && !e.metaKey) setTool(t);
+  if (t && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault(); // stops a focused <select> from jumping to the option starting with that letter
+    e.target.blur?.();
+    setTool(t);
+  }
 });
 
 /* ---------------- save / restore (this browser only) ---------------- */
