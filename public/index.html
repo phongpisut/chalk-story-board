@@ -20,6 +20,9 @@
     <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3"/></symbol>
     <symbol id="i-wipe" viewBox="0 0 24 24"><path d="M3 21h18M6 17l3-11h6l3 11zM9 6V3h6v3"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></symbol>
   </defs>
 </svg>
@@ -43,7 +46,7 @@
   <div class="seg actions">
     <button id="undo" title="Undo chalk (Ctrl+Z)"><svg><use href="#i-undo"/></svg><span>Undo</span></button>
     <button id="clearInk" title="Wipe all chalk"><svg><use href="#i-wipe"/></svg><span>Wipe chalk</span></button>
-    <button id="clearAll" class="danger" title="Clear the whole board"><svg><use href="#i-trash"/></svg><span>Clear</span></button>
+    <button id="clearAll" class="danger" title="Clear the whole board"><svg><use href="#i-trash"/></svg><span>Clear page</span></button>
   </div>
 </header>
 
@@ -63,6 +66,15 @@
       <div id="brush" class="brush" hidden></div>
     </section>
     <div class="tray" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+    <nav class="pager" aria-label="Pages">
+      <button id="pgPrev" class="pg-arrow" title="Previous page (Ctrl+←)" aria-label="Previous page"><svg><use href="#i-prev"/></svg></button>
+      <div id="pgList" class="pg-list"></div>
+      <button id="pgNext" class="pg-arrow" title="Next page (Ctrl+→)" aria-label="Next page"><svg><use href="#i-next"/></svg></button>
+      <span id="pgInfo" class="pg-info"></span>
+      <span id="saveState" class="save-state" role="status"></span>
+      <button id="pgAdd" title="Add a page after this one"><svg><use href="#i-plus"/></svg><span>Add page</span></button>
+      <button id="pgDel" class="danger" title="Remove this page"><svg><use href="#i-trash"/></svg><span>Remove page</span></button>
+    </nav>
   </div>
 </main>
 

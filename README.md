@@ -13,10 +13,11 @@ and draw around them with chalk.
   - Bounce, Shake, Float, Spin, Heartbeat and Talk.
   - Strike through, Blow to bits, Melt and Poof. On click, these four break the picture apart and the next click restores it.
 - **Chalk tools.** Brush, circle, arrow, text and eraser, in 7 colours. Ctrl + scroll changes the brush size. Undo and wipe.
-- **Autosave.** The board is saved in your browser.
+- **Pages.** Add, remove and flip between pages (Ctrl + ← / →). Each page keeps its own stickers, text and chalk.
+- **Autosave.** All pages are saved in your browser (IndexedDB).
 
 Shortcuts: `V` move · `B` chalk · `C` circle · `A` arrow · `T` text · `E` eraser · `Del` delete the selected item ·
-`Ctrl+Z` undo chalk · hold `Shift` while rotating to snap the angle.
+`Ctrl+Z` undo chalk · `Ctrl+C` / `Ctrl+V` copy and paste · `Ctrl+←` / `Ctrl+→` change page · hold `Shift` while rotating to snap the angle.
 
 ## Run locally
 

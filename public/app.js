@@ -578,7 +578,7 @@ board.addEventListener('pointerleave', () => { brush.hidden = true; mouse = null
 $('#undo').onclick = undo;
 $('#clearInk').onclick = () => { snapshot(); ictx.clearRect(0, 0, cssW, cssH); save(); };
 $('#clearAll').onclick = () => {
-  if (!confirm('Clear the whole board (stickers, text and chalk)?')) return;
+  if (!confirm('Clear this page (stickers, text and chalk)?')) return;
   [...itemsEl.children].forEach(el => removeItem(el._it));
   snapshot(); ictx.clearRect(0, 0, cssW, cssH); save();
 };
@@ -590,6 +590,10 @@ addEventListener('keydown', e => {
     return;
   }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); return undo(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    e.preventDefault(); e.target.blur?.();
+    return goPage(cur + (e.key === 'ArrowLeft' ? -1 : 1));
+  }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && sel) { e.preventDefault(); clip = itemData(sel); lastPaste = null; return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && clip) { e.preventDefault(); return paste(); }
   if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); return removeItem(sel); }
@@ -602,30 +606,134 @@ addEventListener('keydown', e => {
   }
 });
 
-/* ---------------- save / restore (this browser only) ---------------- */
+/* ---------------- pages ---------------- */
+// Only the current page lives on the board; the others are stored as { items, ink (PNG data URL), dpr }.
+let pages = [{ items: [], ink: null, dpr }], cur = 0, inkReady = true, inkToken = 0;
+
+function currentPage() {
+  return {
+    items: [...itemsEl.children].map(el => itemData(el._it)),
+    // while a page's chalk image is still loading the canvas is blank, so keep the stored copy
+    ink: inkReady ? ink.toDataURL() : pages[cur].ink,
+    dpr: inkReady ? dpr : pages[cur].dpr,
+  };
+}
+
+function clearBoard() {
+  select(null);
+  for (const el of [...itemsEl.children]) { stopAnim(el._it); el.remove(); }
+  ictx.clearRect(0, 0, cssW, cssH);
+  pctx.clearRect(0, 0, cssW, cssH);
+  undoStack.length = 0; // chalk undo is per page
+}
+
+function loadPage(p) {
+  for (const d of p.items) if (d.type === 'text' || d.u) makeItem(d);
+  const token = ++inkToken;
+  inkReady = !p.ink;
+  if (!p.ink) return;
+  const img = new Image();
+  img.onload = () => {
+    if (token !== inkToken) return; // user already moved to another page
+    ictx.drawImage(img, 0, 0, img.width / p.dpr, img.height / p.dpr);
+    inkReady = true;
+  };
+  img.onerror = () => { if (token === inkToken) inkReady = true; };
+  img.src = p.ink;
+}
+
+function showPage(n, dir) {
+  clearBoard();
+  cur = n;
+  loadPage(pages[cur]);
+  renderPager();
+  save();
+  if (dir) board.animate([{ opacity: .3, transform: `translateX(${dir * 24}px)` }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'ease-out' });
+}
+
+function goPage(n) {
+  if (n < 0 || n >= pages.length || n === cur) return;
+  pages[cur] = currentPage();
+  showPage(n, Math.sign(n - cur));
+}
+
+function addPage() {
+  pages[cur] = currentPage();
+  pages.splice(cur + 1, 0, { items: [], ink: null, dpr });
+  showPage(cur + 1, 1);
+}
+
+function removePage() {
+  if (pages.length < 2) return;
+  if (!confirm(`Remove page ${cur + 1}? Its stickers, text and chalk will be deleted.`)) return;
+  pages.splice(cur, 1);
+  showPage(Math.min(cur, pages.length - 1), 0);
+}
+
+const pgList = $('#pgList');
+function renderPager() {
+  pgList.replaceChildren(...pages.map((_, i) => {
+    const b = Object.assign(document.createElement('button'), { textContent: i + 1, className: i === cur ? 'on' : '' });
+    b.setAttribute('aria-label', `Page ${i + 1}`);
+    if (i === cur) b.setAttribute('aria-current', 'page');
+    b.onclick = () => goPage(i);
+    return b;
+  }));
+  pgList.children[cur].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  $('#pgPrev').disabled = cur === 0;
+  $('#pgNext').disabled = cur === pages.length - 1;
+  $('#pgDel').disabled = pages.length < 2;
+  $('#pgInfo').textContent = `Page ${cur + 1} of ${pages.length}`;
+}
+$('#pgPrev').onclick = () => goPage(cur - 1);
+$('#pgNext').onclick = () => goPage(cur + 1);
+$('#pgAdd').onclick = addPage;
+$('#pgDel').onclick = removePage;
+
+/* ---------------- save / restore (this browser only, IndexedDB: room for many pages) ---------------- */
 const FIELDS = ['type', 'u', 'title', 'x', 'y', 'w', 'fs', 'rot', 'flip', 'name', 'anim', 'mode', 'text', 'color'];
+const dbp = new Promise((res, rej) => {
+  const r = indexedDB.open('chalk-story', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('kv');
+  r.onsuccess = () => res(r.result);
+  r.onerror = () => rej(r.error);
+});
+const idb = (mode, fn) => dbp.then(db => new Promise((res, rej) => {
+  const tx = db.transaction('kv', mode), req = fn(tx.objectStore('kv'));
+  tx.oncomplete = () => res(req.result);
+  tx.onerror = tx.onabort = () => rej(tx.error);
+}));
+
 let saveT, restored = false;
 function save() {
   if (!restored) return;
   clearTimeout(saveT);
-  saveT = setTimeout(() => {
-    const items = [...itemsEl.children].map(el => Object.fromEntries(FIELDS.map(k => [k, el._it[k]])));
-    try { localStorage.setItem(KEY, JSON.stringify({ items, ink: ink.toDataURL(), dpr })); } catch { /* storage full or blocked: board still works */ }
+  saveT = setTimeout(async () => {
+    pages[cur] = currentPage();
+    try {
+      await idb('readwrite', s => s.put({ pages, page: cur }, 'board'));
+      $('#saveState').textContent = '';
+    } catch {
+      $('#saveState').textContent = '⚠ Not saved: browser storage is blocked or full';
+    }
   }, 400);
 }
-function restore() {
+
+async function restore() {
   let data = null;
-  try { data = JSON.parse(localStorage.getItem(KEY)); } catch {}
+  try { data = await idb('readonly', s => s.get('board')); } catch {}
+  if (!data) try { // boards saved before pages existed
+    const old = JSON.parse(localStorage.getItem(KEY));
+    if (old) data = { pages: [{ items: old.items || [], ink: old.ink || null, dpr: old.dpr || dpr }], page: 0 };
+  } catch {}
+  if (data?.pages?.length) { pages = data.pages; cur = Math.min(data.page || 0, pages.length - 1); }
+  loadPage(pages[cur]);
+  renderPager();
   restored = true;
-  if (!data) return;
-  for (const d of data.items || []) if (d.type === 'text' || d.u) makeItem(d);
-  if (data.ink) {
-    const img = new Image();
-    img.onload = () => ictx.drawImage(img, 0, 0, img.width / data.dpr, img.height / data.dpr);
-    img.src = data.ink;
-  }
 }
 
 setTool('select');
 fit();
-loadCatalog().catch(err => { $('#count').textContent = 'Could not load catalog.json: ' + err.message; restore(); });
+renderPager();
+// No restore when the catalog fails: stickers could not be drawn, and the next save would drop them.
+loadCatalog().catch(err => { $('#count').textContent = 'Could not load catalog.json: ' + err.message; });
